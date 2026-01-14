@@ -1,0 +1,5 @@
+{
+  "name": "Minimalist HN",
+  "description": "A clean, modern Hacker News client featuring AI-powered story summarization and a distraction-free reading experience.",
+  "requestFramePermissions": []
+}

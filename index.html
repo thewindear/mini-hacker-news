@@ -1,0 +1,130 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Minimalist HN</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sat: env(safe-area-inset-top);
+            --sar: env(safe-area-inset-right);
+            --sab: env(safe-area-inset-bottom);
+            --sal: env(safe-area-inset-left);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fafafa;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            color: #111827;
+            overflow-wrap: break-word;
+        }
+        .pb-safe {
+            padding-bottom: var(--sab);
+        }
+        .pt-safe {
+            padding-top: var(--sat);
+        }
+        
+        /* HN Content Styles */
+        .prose-comment {
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+        .prose-comment a {
+            color: #f97316;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            font-weight: 500;
+        }
+        .prose-comment p {
+            margin-top: 0.6em;
+            margin-bottom: 0.6em;
+        }
+        .prose-comment p:first-child {
+            margin-top: 0;
+        }
+        .prose-comment pre {
+            background-color: #f8fafc;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            overflow-x: auto;
+            margin: 0.8rem 0;
+            border: 1px solid #f1f5f9;
+            max-width: 100%;
+        }
+        .prose-comment code {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: #f1f5f9;
+            padding: 0.1rem 0.25rem;
+            border-radius: 0.25rem;
+            font-size: 0.85em;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        
+        /* Hide scrollbar utility */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        /* Animations */
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slide-in-bottom {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .animate-in {
+            animation-duration: 300ms;
+            animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+            animation-fill-mode: forwards;
+        }
+        .fade-in { animation-name: fade-in; }
+        .slide-in-from-bottom { animation-name: slide-in-bottom; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.35.0"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
