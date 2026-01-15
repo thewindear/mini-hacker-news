@@ -1,0 +1,16 @@
+{
+    "short_name": "mini-hacker-news",
+    "name": "Mini Hacker News",
+    "icons": [
+        {
+            "src": "logo-192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        }
+    ],
+    "start_url": "/",
+    "background_color": "#ffffff",
+    "theme_color": "#F66800",
+    "display": "standalone",
+    "orientation": "portrait"
+}
