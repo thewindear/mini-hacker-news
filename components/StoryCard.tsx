@@ -7,11 +7,23 @@ interface StoryCardProps {
   story: HNItem;
   rank: number;
   onSelect: (story: HNItem) => void;
+  onUserSelect: (username: string) => void;
   targetLanguage: string;
   isSelected?: boolean;
+  isFavorite?: boolean;
+  onToggleFavorite?: (id: number) => void;
 }
 
-const StoryCard: React.FC<StoryCardProps> = ({ story, rank, onSelect, targetLanguage, isSelected }) => {
+const StoryCard: React.FC<StoryCardProps> = ({ 
+  story, 
+  rank, 
+  onSelect, 
+  onUserSelect, 
+  targetLanguage, 
+  isSelected,
+  isFavorite,
+  onToggleFavorite
+}) => {
   const [translatedTitle, setTranslatedTitle] = useState<string | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
 
@@ -36,13 +48,31 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, rank, onSelect, targetLang
     }
   };
 
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleFavorite) onToggleFavorite(story.id);
+  };
+
   const handleLinkClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (story.url) window.open(story.url, '_blank', 'noopener,noreferrer');
   };
 
+  const handleUserClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (story.by) onUserSelect(story.by);
+  };
+
   const timeAgo = (timestamp: number) => {
-    const seconds = Math.floor((new Date().getTime() / 1000) - timestamp);
+    const now = new Date().getTime() / 1000;
+    const seconds = Math.floor(now - timestamp);
+    
+    // If more than 30 days, show YYYY-MM-DD
+    if (seconds > 30 * 86400) {
+      const date = new Date(timestamp * 1000);
+      return date.toISOString().split('T')[0];
+    }
+    
     let interval = seconds / 86400;
     if (interval > 1) return Math.floor(interval) + "d";
     interval = seconds / 3600;
@@ -68,6 +98,13 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, rank, onSelect, targetLang
         <span className={`text-[10px] font-black transition-colors ${isSelected ? 'text-orange-500' : 'text-gray-300 group-hover:text-gray-400'}`}>
           {rank.toString().padStart(2, '0')}
         </span>
+        <button 
+          onClick={handleToggleFavorite}
+          title={isFavorite ? "Remove from saved" : "Save story"}
+          className={`mt-2.5 transition-all hover:scale-125 active:scale-90 ${isFavorite ? 'text-orange-500' : 'text-gray-200 group-hover:text-gray-300'}`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+        </button>
       </div>
 
       <div className="flex-1 min-w-0">
@@ -88,7 +125,10 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, rank, onSelect, targetLang
           </span>
           <span className="text-gray-200 flex-shrink-0">•</span>
           
-          <span className={`truncate min-w-0 max-w-[80px] sm:max-w-none transition-colors ${isSelected ? 'text-orange-600' : 'text-gray-900'}`}>
+          <span 
+            onClick={handleUserClick}
+            className={`truncate min-w-0 max-w-[80px] sm:max-w-none transition-colors hover:underline normal-case ${isSelected ? 'text-orange-600' : 'text-gray-900 hover:text-orange-500'}`}
+          >
             {story.by}
           </span>
           

@@ -15,9 +15,20 @@ export interface HNItem {
   title?: string;
   parts?: number[];
   descendants?: number;
+  // 仅在搜索/关联结果中存在
+  story_id?: number;
+  story_title?: string;
 }
 
-export type FeedType = 'top' | 'new' | 'best' | 'show' | 'ask';
+export interface HNUser {
+  id: string;
+  created: number;
+  karma: number;
+  about?: string;
+  submitted?: number[];
+}
+
+export type FeedType = 'top' | 'new' | 'best' | 'show' | 'ask' | 'user';
 
 export interface AppState {
   items: HNItem[];

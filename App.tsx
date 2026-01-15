@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { HNItem, FeedType } from './types';
-import { fetchFeedIds, fetchItemsByIds } from './services/hnApi';
+import { fetchFeedIds, fetchItemsByIds, searchItemsByUser, fetchItem } from './services/hnApi';
 import StoryCard from './components/StoryCard';
 import StoryDetail from './components/StoryDetail';
+import UserDetail from './components/UserDetail';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -16,24 +17,33 @@ export const LANGUAGES = [
   { code: 'Korean', label: '한국어' },
 ];
 
-const FEED_CONFIG: { id: FeedType; icon: string; label: string }[] = [
+const FEED_CONFIG: { id: FeedType | 'favorites'; icon: string; label: string }[] = [
   { id: 'top', icon: '🔥', label: 'Top' },
   { id: 'new', icon: '✨', label: 'New' },
   { id: 'best', icon: '🏆', label: 'Best' },
   { id: 'show', icon: '🚀', label: 'Show' },
   { id: 'ask', icon: '💬', label: 'Ask' },
+  { id: 'favorites', icon: '🔖', label: 'Saved' },
 ];
 
 const App: React.FC = () => {
-  const [feed, setFeed] = useState<FeedType>('top');
+  const [feed, setFeed] = useState<FeedType | 'favorites'>('top');
   const [items, setItems] = useState<HNItem[]>([]);
   const [allIds, setAllIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [selectedStory, setSelectedStory] = useState<HNItem | null>(null);
+  const [activeUsername, setActiveUsername] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSelectedVisible, setIsSelectedVisible] = useState(true);
+  const [searchUser, setSearchUser] = useState<string | null>(null);
   
+  // Favorites state
+  const [favoriteIds, setFavoriteIds] = useState<number[]>(() => {
+    const saved = localStorage.getItem('hn_local_favorites');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [targetLanguage, setTargetLanguage] = useState(() => {
     return localStorage.getItem('hn_target_lang') || 'Chinese';
   });
@@ -43,23 +53,57 @@ const App: React.FC = () => {
   const loadMoreTrigger = useRef<HTMLDivElement | null>(null);
   const sidebarScrollRef = useRef<HTMLDivElement>(null);
 
+  // Sync favorites to localStorage
+  useEffect(() => {
+    localStorage.setItem('hn_local_favorites', JSON.stringify(favoriteIds));
+  }, [favoriteIds]);
+
   useEffect(() => {
     localStorage.setItem('hn_target_lang', targetLanguage);
   }, [targetLanguage]);
 
-  const loadInitialFeed = useCallback(async (type: FeedType) => {
+  // Use a ref for feed to avoid toggleFavorite depending on feed state and causing re-renders
+  const feedRef = useRef(feed);
+  useEffect(() => {
+    feedRef.current = feed;
+  }, [feed]);
+
+  const toggleFavorite = useCallback((id: number) => {
+    setFavoriteIds(prev => {
+      const isRemoving = prev.includes(id);
+      const next = isRemoving ? prev.filter(fid => fid !== id) : [...prev, id];
+      
+      // Only remove from the current items list if we are explicitly viewing the "favorites" feed
+      if (isRemoving && feedRef.current === 'favorites') {
+        setItems(currentItems => currentItems.filter(item => item.id !== id));
+      }
+      
+      return next;
+    });
+  }, []);
+
+  const loadInitialFeed = useCallback(async (type: FeedType | 'favorites', username?: string) => {
     setLoading(true);
     setError(null);
     setItems([]);
     try {
-      const ids = await fetchFeedIds(type);
-      setAllIds(ids);
-      const initialBatch = ids.slice(0, ITEMS_PER_PAGE);
-      const data = await fetchItemsByIds(initialBatch);
-      setItems(data);
-      // On desktop, auto-select first story
-      if (window.innerWidth >= 1024 && data.length > 0) {
-        setSelectedStory(data[0]);
+      if (username) {
+        const data = await searchItemsByUser(username, 'story');
+        setItems(data);
+        setAllIds([]); 
+        setFeed('user');
+      } else if (type === 'favorites') {
+        const currentSaved = localStorage.getItem('hn_local_favorites');
+        const ids = currentSaved ? JSON.parse(currentSaved) : [];
+        const data = await fetchItemsByIds(ids);
+        setItems([...data].reverse());
+        setAllIds([]);
+      } else {
+        const ids = await fetchFeedIds(type as FeedType);
+        setAllIds(ids);
+        const initialBatch = ids.slice(0, ITEMS_PER_PAGE);
+        const data = await fetchItemsByIds(initialBatch);
+        setItems(data);
       }
     } catch (err) {
       setError('Connection failed');
@@ -70,7 +114,7 @@ const App: React.FC = () => {
   }, []);
 
   const loadMore = useCallback(async () => {
-    if (loadingMore || items.length >= allIds.length || items.length === 0) return;
+    if (loadingMore || feed === 'user' || feed === 'favorites' || items.length >= allIds.length || items.length === 0) return;
     
     setLoadingMore(true);
     try {
@@ -82,15 +126,18 @@ const App: React.FC = () => {
     } finally {
       setLoadingMore(false);
     }
-  }, [allIds, items.length, loadingMore]);
+  }, [allIds, items.length, loadingMore, feed]);
 
   useEffect(() => {
-    loadInitialFeed(feed);
-  }, [feed, loadInitialFeed]);
+    if (searchUser) {
+      loadInitialFeed('user', searchUser);
+    } else {
+      loadInitialFeed(feed);
+    }
+  }, [feed, searchUser, loadInitialFeed]);
 
-  // Infinite Scroll Observer
   useEffect(() => {
-    if (loading) return;
+    if (loading || feed === 'user' || feed === 'favorites') return;
     if (observerRef.current) observerRef.current.disconnect();
     observerRef.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting) {
@@ -103,9 +150,8 @@ const App: React.FC = () => {
     return () => {
       if (observerRef.current) observerRef.current.disconnect();
     };
-  }, [loading, loadMore]);
+  }, [loading, loadMore, feed]);
 
-  // Selected Item Visibility Observer
   useEffect(() => {
     if (!selectedStory || !sidebarScrollRef.current) {
       setIsSelectedVisible(true);
@@ -135,6 +181,31 @@ const App: React.FC = () => {
       if (visibilityObserverRef.current) visibilityObserverRef.current.disconnect();
     };
   }, [selectedStory, items]);
+
+  const handleStorySelect = async (story: HNItem) => {
+    setActiveUsername(null);
+    setSelectedStory(story);
+    
+    if (!story.kids && (story.descendants ?? 0) > 0) {
+      try {
+        const fullStory = await fetchItem(story.id);
+        if (fullStory && fullStory.id === story.id) {
+          setSelectedStory(fullStory);
+        }
+      } catch (err) {
+        console.error("Failed to sync full story details:", err);
+      }
+    }
+  };
+
+  const handleUserSelect = (username: string) => {
+    setActiveUsername(username);
+  };
+
+  const clearUserSearch = () => {
+    setSearchUser(null);
+    setFeed('top');
+  };
 
   const scrollToSelected = () => {
     if (!selectedStory) return;
@@ -174,9 +245,9 @@ const App: React.FC = () => {
             {FEED_CONFIG.map((f) => (
               <button
                 key={f.id}
-                onClick={() => setFeed(f.id)}
+                onClick={() => { clearUserSearch(); setFeed(f.id); }}
                 className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
-                  feed === f.id ? 'bg-orange-50 text-orange-600' : 'text-gray-400 hover:bg-gray-50'
+                  feed === f.id && !searchUser ? 'bg-orange-50 text-orange-600' : 'text-gray-400 hover:bg-gray-50'
                 }`}
               >
                 <span className="text-sm leading-none opacity-80">{f.icon}</span>
@@ -203,36 +274,62 @@ const App: React.FC = () => {
       </header>
 
       <main className="flex-1 flex overflow-hidden max-w-[1600px] mx-auto w-full">
-        {/* Sidebar / List View */}
-        <section className={`relative flex-shrink-0 w-full lg:w-[420px] bg-white border-r border-gray-100 flex flex-col overflow-hidden transition-transform duration-300 ${selectedStory ? 'hidden lg:flex' : 'flex'}`}>
+        {/* Adjusted lg:w-[380px] for a more proportional desktop look */}
+        <section className={`relative flex-shrink-0 w-full lg:w-[380px] bg-white border-r border-gray-100 flex flex-col overflow-hidden transition-transform duration-300 ${(selectedStory || activeUsername) ? 'hidden lg:flex' : 'flex'}`}>
+          {searchUser && (
+            <div className="bg-orange-50/50 border-b border-orange-100 px-5 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] font-black uppercase text-orange-400 bg-white px-1.5 py-0.5 rounded border border-orange-100">User Search</span>
+                <span className="text-[13px] font-bold text-orange-900 tracking-tight">{searchUser}</span>
+              </div>
+              <button 
+                onClick={clearUserSearch}
+                className="text-[10px] font-black text-orange-500 hover:text-orange-700 bg-white px-2 py-1 rounded-lg border border-orange-100 transition-all shadow-sm"
+              >
+                CLOSE
+              </button>
+            </div>
+          )}
+
           <div ref={sidebarScrollRef} className="flex-1 overflow-y-auto scroll-smooth">
             {loading ? (
               <Skeleton />
             ) : error ? (
               <div className="p-20 text-center">
                 <p className="text-gray-500 text-sm mb-6">{error}</p>
-                <button onClick={() => loadInitialFeed(feed)} className="px-6 py-2.5 bg-orange-500 text-white rounded-xl text-xs font-bold uppercase">Retry</button>
+                <button onClick={() => searchUser ? loadInitialFeed('user', searchUser) : loadInitialFeed(feed)} className="px-6 py-2.5 bg-orange-500 text-white rounded-xl text-xs font-bold uppercase">Retry</button>
               </div>
             ) : (
               <div className="divide-y divide-gray-50">
-                {items.map((item, index) => (
-                  <StoryCard 
-                    key={item.id} 
-                    story={item} 
-                    rank={index + 1}
-                    onSelect={setSelectedStory}
-                    targetLanguage={targetLanguage}
-                    isSelected={selectedStory?.id === item.id}
-                  />
-                ))}
-                <div ref={loadMoreTrigger} className="p-10 text-center">
-                  {loadingMore && <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" />}
-                </div>
+                {items.length === 0 ? (
+                  <div className="p-20 text-center">
+                    <div className="text-4xl mb-4 opacity-20">{feed === 'favorites' ? '🔖' : '📭'}</div>
+                    <p className="text-gray-400 text-sm font-medium">{feed === 'favorites' ? 'You haven\'t saved any stories yet' : 'No stories found'}</p>
+                  </div>
+                ) : (
+                  items.map((item, index) => (
+                    <StoryCard 
+                      key={`${item.id}-${index}`} 
+                      story={item} 
+                      rank={index + 1}
+                      onSelect={handleStorySelect}
+                      onUserSelect={handleUserSelect}
+                      targetLanguage={targetLanguage}
+                      isSelected={selectedStory?.id === item.id}
+                      isFavorite={favoriteIds.includes(item.id)}
+                      onToggleFavorite={toggleFavorite}
+                    />
+                  ))
+                )}
+                {(!searchUser && feed !== 'favorites') && (
+                  <div ref={loadMoreTrigger} className="p-10 text-center">
+                    {loadingMore && <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" />}
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Floating Action Button for Location - Smaller and Only visible when item is off-screen */}
           {selectedStory && items.length > 5 && !isSelectedVisible && (
             <button 
               onClick={scrollToSelected}
@@ -244,41 +341,59 @@ const App: React.FC = () => {
           )}
         </section>
 
-        {/* Detail View Container */}
-        <section className={`flex-1 flex flex-col bg-white overflow-hidden ${!selectedStory ? 'hidden lg:flex items-center justify-center' : 'flex'}`}>
-          {selectedStory ? (
-            <StoryDetail 
-              story={selectedStory} 
-              onClose={() => setSelectedStory(null)} 
-              targetLanguage={targetLanguage}
-              isInline={true}
-            />
-          ) : (
+        <section className={`flex-1 relative bg-white overflow-hidden ${(!selectedStory && !activeUsername) ? 'hidden lg:flex items-center justify-center' : 'flex'}`}>
+          {!selectedStory && !activeUsername && (
             <div className="text-center p-10 max-sm">
               <div className="w-20 h-20 bg-orange-50 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-6">🗞️</div>
               <h2 className="text-xl font-black text-gray-900 mb-2">Select a story</h2>
               <p className="text-sm text-gray-400 font-medium">Read the latest from the Hacker News community with AI-powered summaries.</p>
             </div>
           )}
+
+          <div className={`absolute inset-0 z-10 bg-white transition-opacity duration-200 ${selectedStory && !activeUsername ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+            {selectedStory && (
+              <StoryDetail 
+                story={selectedStory} 
+                onClose={() => { setSelectedStory(null); setActiveUsername(null); }} 
+                onUserSelect={handleUserSelect}
+                targetLanguage={targetLanguage}
+                isInline={true}
+                isFavorite={favoriteIds.includes(selectedStory.id)}
+                onToggleFavorite={toggleFavorite}
+              />
+            )}
+          </div>
+
+          <div className={`absolute inset-0 z-20 bg-white transition-transform duration-300 ease-out ${activeUsername ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}>
+            {activeUsername && (
+              <UserDetail 
+                username={activeUsername} 
+                onClose={() => setActiveUsername(null)} 
+                onStorySelect={handleStorySelect}
+                hasActiveStory={!!selectedStory}
+                favoriteIds={favoriteIds}
+                onToggleFavorite={toggleFavorite}
+              />
+            )}
+          </div>
         </section>
       </main>
 
-      {/* Mobile Navigation */}
       <nav className="lg:hidden flex-shrink-0 bg-white border-t border-gray-100 px-4 py-4 pb-[calc(1rem+var(--sab))] z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
         <div className="flex justify-around items-center max-w-md mx-auto">
           {FEED_CONFIG.map((f) => (
             <button
               key={f.id}
-              onClick={() => { setFeed(f.id); setSelectedStory(null); }}
-              className={`flex flex-col items-center gap-1.5 px-4 py-2 rounded-2xl transition-all active:scale-95 ${
-                feed === f.id 
+              onClick={() => { clearUserSearch(); setFeed(f.id); setSelectedStory(null); setActiveUsername(null); }}
+              className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-2xl transition-all active:scale-95 ${
+                feed === f.id && !searchUser
                   ? 'bg-orange-500 text-white shadow-lg shadow-orange-100' 
                   : 'text-gray-400 hover:bg-gray-50'
               }`}
             >
-              <span className="text-2xl leading-none">{f.icon}</span>
+              <span className="text-xl leading-none">{f.icon}</span>
               <span className={`text-[9px] font-black uppercase tracking-wider ${
-                feed === f.id ? 'text-white' : 'text-gray-400'
+                feed === f.id && !searchUser ? 'text-white' : 'text-gray-400'
               }`}>
                 {f.label}
               </span>
