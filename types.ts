@@ -28,7 +28,7 @@ export interface HNUser {
   submitted?: number[];
 }
 
-export type FeedType = 'top' | 'new' | 'best' | 'show' | 'ask' | 'user';
+export type FeedType = 'top' | 'new' | 'best' | 'show' | 'ask' | 'job' | 'user';
 
 export interface AppState {
   items: HNItem[];

@@ -25,9 +25,31 @@ async function fetchWithRetry(url: string, retries = 3, backoff = 300): Promise<
 }
 
 export const fetchFeedIds = async (type: FeedType): Promise<number[]> => {
-  if (type === 'user') return [];
+  if (type === 'user' || type === 'job') return []; // Handled by Algolia for Jobs
   const response = await fetchWithRetry(`${BASE_URL}/${type}stories.json`);
   return response.json();
+};
+
+export const fetchJobsAlgolia = async (page: number = 0): Promise<HNItem[]> => {
+  try {
+    const response = await fetchWithRetry(`${ALGOLIA_BASE_URL}/search_by_date?tags=job&hitsPerPage=20&page=${page}`);
+    const data = await response.json();
+    
+    return data.hits.map((hit: any) => ({
+      id: parseInt(hit.objectID),
+      title: hit.title,
+      url: hit.url,
+      by: hit.author,
+      score: hit.points,
+      time: hit.created_at_i,
+      text: hit.comment_text || hit.story_text,
+      descendants: hit.num_comments,
+      type: 'job'
+    }));
+  } catch (err) {
+    console.error(`Algolia Jobs fetch failed:`, err);
+    return [];
+  }
 };
 
 export const fetchItem = async (id: number): Promise<HNItem | null> => {

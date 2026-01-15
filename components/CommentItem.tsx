@@ -74,12 +74,10 @@ const CommentItem: React.FC<CommentItemProps> = ({ id, depth, targetLanguage, on
   const timeAgo = (timestamp: number) => {
     const now = new Date().getTime() / 1000;
     const seconds = Math.floor(now - timestamp);
-
     if (seconds > 30 * 86400) {
       const date = new Date(timestamp * 1000);
       return date.toISOString().split('T')[0];
     }
-
     if (seconds < 60) return 'now';
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes}m`;
@@ -87,6 +85,10 @@ const CommentItem: React.FC<CommentItemProps> = ({ id, depth, targetLanguage, on
     if (hours < 24) return `${hours}h`;
     return `${Math.floor(hours / 24)}d`;
   };
+
+  const TranslationIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
+  );
 
   if (loading) return <div className={`py-3 ${depth > 0 ? 'ml-1 pl-3 border-l border-gray-50' : ''}`}><div className="h-2 bg-gray-100 rounded w-16 mb-2 animate-pulse" /><div className="h-3 bg-gray-50 rounded w-full animate-pulse" /></div>;
   if (error || !comment || comment.deleted || comment.dead) return null;
@@ -96,15 +98,8 @@ const CommentItem: React.FC<CommentItemProps> = ({ id, depth, targetLanguage, on
       <div className="flex items-center justify-between mb-0.5">
         <div className="flex items-center gap-2 py-0.5 pr-4">
           <div className={`w-1 h-1 rounded-full ${depth === 0 ? 'bg-orange-400' : 'bg-gray-200'}`} />
-          <span 
-            onClick={handleUserClick}
-            className="text-[10px] font-black text-gray-900 tracking-tight cursor-pointer hover:underline hover:text-orange-500 transition-colors normal-case"
-          >
-            {comment.by}
-          </span>
-          <span onClick={() => setIsCollapsed(!isCollapsed)} className="text-[9px] text-gray-400 font-medium cursor-pointer select-none">
-            {timeAgo(comment.time)}
-          </span>
+          <span onClick={handleUserClick} className="text-[10px] font-black text-gray-900 tracking-tight cursor-pointer hover:underline hover:text-orange-500 transition-colors normal-case">{comment.by}</span>
+          <span onClick={() => setIsCollapsed(!isCollapsed)} className="text-[9px] text-gray-400 font-medium cursor-pointer select-none">{timeAgo(comment.time)}</span>
           {isCollapsed && <span onClick={() => setIsCollapsed(false)} className="text-[8px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-tighter cursor-pointer">+{comment.kids?.length || 0} exp</span>}
         </div>
         {!isCollapsed && comment.text && (
@@ -115,10 +110,8 @@ const CommentItem: React.FC<CommentItemProps> = ({ id, depth, targetLanguage, on
           >
             {isTranslating ? (
               <div className="w-2.5 h-2.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            ) : translatedText ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+              <TranslationIcon />
             )}
           </button>
         )}

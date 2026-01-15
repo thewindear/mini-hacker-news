@@ -66,13 +66,10 @@ const StoryCard: React.FC<StoryCardProps> = ({
   const timeAgo = (timestamp: number) => {
     const now = new Date().getTime() / 1000;
     const seconds = Math.floor(now - timestamp);
-    
-    // If more than 30 days, show YYYY-MM-DD
     if (seconds > 30 * 86400) {
       const date = new Date(timestamp * 1000);
       return date.toISOString().split('T')[0];
     }
-    
     let interval = seconds / 86400;
     if (interval > 1) return Math.floor(interval) + "d";
     interval = seconds / 3600;
@@ -83,6 +80,11 @@ const StoryCard: React.FC<StoryCardProps> = ({
   };
 
   const domain = story.url ? new URL(story.url).hostname.replace('www.', '') : null;
+  const isJob = story.type === 'job';
+
+  const TranslationIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
+  );
 
   return (
     <div 
@@ -120,25 +122,33 @@ const StoryCard: React.FC<StoryCardProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase flex-nowrap overflow-hidden">
-          <span className={`font-black flex-shrink-0 transition-colors ${isSelected ? 'text-orange-600' : 'text-orange-500/70'}`}>
-            {story.score} PTS
-          </span>
-          <span className="text-gray-200 flex-shrink-0">•</span>
+          {story.score !== undefined && (
+            <>
+              <span className={`font-black flex-shrink-0 transition-colors ${isSelected ? 'text-orange-600' : 'text-orange-500/70'}`}>
+                {story.score} PTS
+              </span>
+              <span className="text-gray-200 flex-shrink-0">•</span>
+            </>
+          )}
           
-          <span 
-            onClick={handleUserClick}
-            className={`truncate min-w-0 max-w-[80px] sm:max-w-none transition-colors hover:underline normal-case ${isSelected ? 'text-orange-600' : 'text-gray-900 hover:text-orange-500'}`}
-          >
-            {story.by}
-          </span>
+          {story.by && (
+            <>
+              <span 
+                onClick={handleUserClick}
+                className={`truncate min-w-0 max-w-[80px] sm:max-w-none transition-colors hover:underline normal-case ${isSelected ? 'text-orange-600' : 'text-gray-900 hover:text-orange-500'}`}
+              >
+                {story.by}
+              </span>
+              <span className="text-gray-200 flex-shrink-0">•</span>
+            </>
+          )}
           
-          <span className="text-gray-200 flex-shrink-0">•</span>
           <span className="flex-shrink-0">{timeAgo(story.time)}</span>
           
           <div className="flex items-center gap-1 flex-shrink-0 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
             <button 
               onClick={handleTranslate}
-              className={`px-1 rounded flex items-center gap-1 transition-all ${
+              className={`p-1 rounded flex items-center justify-center transition-all ${
                 translatedTitle 
                   ? 'bg-orange-100 text-orange-600' 
                   : 'bg-gray-100 text-gray-500 lg:bg-transparent lg:text-gray-300 hover:text-orange-500'
@@ -147,7 +157,7 @@ const StoryCard: React.FC<StoryCardProps> = ({
               {isTranslating ? (
                 <div className="w-2.5 h-2.5 border border-current border-t-transparent rounded-full animate-spin" />
               ) : (
-                <span className="text-[8px] font-black">{translatedTitle ? 'ORIG' : 'TL'}</span>
+                <TranslationIcon />
               )}
             </button>
             {story.url && (
@@ -160,9 +170,11 @@ const StoryCard: React.FC<StoryCardProps> = ({
             )}
           </div>
 
-          <span className={`ml-auto flex items-center gap-0.5 flex-shrink-0 transition-colors ${isSelected ? 'text-orange-400' : 'text-gray-400'}`}>
-            💬 {story.descendants || 0}
-          </span>
+          {!isJob && (
+            <span className={`ml-auto flex items-center gap-0.5 flex-shrink-0 transition-colors ${isSelected ? 'text-orange-400' : 'text-gray-400'}`}>
+              💬 {story.descendants || 0}
+            </span>
+          )}
         </div>
       </div>
     </div>
