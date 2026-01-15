@@ -44,6 +44,7 @@ export const fetchJobsAlgolia = async (page: number = 0): Promise<HNItem[]> => {
       time: hit.created_at_i,
       text: hit.comment_text || hit.story_text,
       descendants: hit.num_comments,
+      job_text: hit?.job_text || '',
       type: 'job'
     }));
   } catch (err) {

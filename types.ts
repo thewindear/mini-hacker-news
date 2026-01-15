@@ -18,6 +18,7 @@ export interface HNItem {
   // 仅在搜索/关联结果中存在
   story_id?: number;
   story_title?: string;
+  job_text?: string;
 }
 
 export interface HNUser {

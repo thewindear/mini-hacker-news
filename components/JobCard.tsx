@@ -35,22 +35,37 @@ const JobCard: React.FC<JobCardProps> = ({ job, targetLanguage, onSelect }) => {
   };
 
   const timeAgo = (timestamp: number) => {
-    const now = new Date().getTime() / 1000;
+    const now = Date.now() / 1000;
     const seconds = Math.floor(now - timestamp);
-    if (seconds > 30 * 86400) {
+    
+    // Show YYYY-MM-DD for posts older than 7 days
+    if (seconds > 7 * 86400) {
       const date = new Date(timestamp * 1000);
       return date.toISOString().split('T')[0];
     }
-    let interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + "d";
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + "h";
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + "m";
-    return "now";
+    
+    // Concise English for recent posts
+    if (seconds >= 86400) {
+      const days = Math.floor(seconds / 86400);
+      return `${days}d ago`;
+    }
+    
+    if (seconds >= 3600) {
+      const hours = Math.floor(seconds / 3600);
+      return `${hours}h ago`;
+    }
+    
+    if (seconds >= 60) {
+      const minutes = Math.floor(seconds / 60);
+      return `${minutes}m ago`;
+    }
+    
+    return "Just now";
   };
 
   const domain = job.url ? new URL(job.url).hostname.replace('www.', '') : null;
+  console.log(job);
+  const hasTextContent = (job.job_text && job.job_text.trim().length > 0);
 
   const TranslationIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
@@ -64,7 +79,15 @@ const JobCard: React.FC<JobCardProps> = ({ job, targetLanguage, onSelect }) => {
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-orange-300 opacity-0 group-hover:opacity-100 transition-opacity" />
       
       <div className="flex items-start justify-between mb-3 sm:mb-4">
-        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-orange-50 rounded-2xl flex items-center justify-center text-lg sm:text-xl shadow-inner border border-orange-100/50">💼</div>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-orange-50 rounded-2xl flex items-center justify-center text-lg sm:text-xl shadow-inner border border-orange-100/50">💼</div>
+          {job.by && (
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Posted by</span>
+              <span className="text-[11px] font-bold text-gray-900">{job.by}</span>
+            </div>
+          )}
+        </div>
         <button 
           onClick={handleTranslate}
           className={`p-1.5 rounded-lg border transition-all ${
@@ -92,9 +115,9 @@ const JobCard: React.FC<JobCardProps> = ({ job, targetLanguage, onSelect }) => {
       </div>
 
       <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
-        <span className="text-[9px] sm:text-[10px] font-black text-gray-300 uppercase tracking-widest">{timeAgo(job.time)}</span>
+        <span className="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest">{timeAgo(job.time)}</span>
         <div className="flex items-center gap-2 text-orange-500 text-[9px] sm:text-[10px] font-black uppercase tracking-widest group-hover:gap-3 transition-all">
-          Apply Now
+          {hasTextContent ? 'DETAIL' : 'APPLY NOW'}
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </div>
       </div>

@@ -6,6 +6,7 @@ import StoryCard from './components/StoryCard';
 import StoryDetail from './components/StoryDetail';
 import UserDetail from './components/UserDetail';
 import JobCard from './components/JobCard';
+import JobDetail from './components/JobDetail';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -193,8 +194,16 @@ const App: React.FC = () => {
   }, [selectedStory, items]);
 
   const handleStorySelect = async (story: HNItem) => {
-    if (story.type === 'job' && story.url && !story.text) {
-      window.open(story.url, '_blank', 'noopener,noreferrer');
+    if (story.type === 'job') {
+      const hasJobContent = (story.job_text && story.job_text.trim().length > 0) || (story.text && story.text.trim().length > 0);
+      if (hasJobContent) {
+        setActiveUsername(null);
+        setSelectedStory(story);
+        return;
+      }
+      if (story.url) {
+        window.open(story.url, '_blank', 'noopener,noreferrer');
+      }
       return;
     }
     
@@ -209,18 +218,32 @@ const App: React.FC = () => {
   };
 
   const handleUserSelect = (username: string) => setActiveUsername(username);
+  
+  const handleNavClick = (id: FeedType | 'favorites') => {
+    setSearchUser(null);
+    setFeed(id);
+    
+    if (window.innerWidth < 1024) {
+      setSelectedStory(null);
+      setActiveUsername(null);
+    }
+  };
+
   const clearUserSearch = () => { setSearchUser(null); setFeed('top'); };
+  
   const scrollToSelected = () => {
     if (!selectedStory) return;
     const element = document.getElementById(`story-card-${selectedStory.id}`);
     if (element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
+  const isJobFeed = feed === 'job';
+
   const Skeleton = () => (
-    <div className={feed === 'job' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6" : "space-y-0"}>
+    <div className={isJobFeed ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6" : "space-y-0"}>
       {[...Array(10)].map((_, i) => (
-        <div key={i} className={`animate-pulse ${feed === 'job' ? 'h-48 bg-gray-100 rounded-[2rem]' : 'flex gap-4 p-5 border-b border-gray-100'}`}>
-          {feed !== 'job' && (
+        <div key={i} className={`animate-pulse ${isJobFeed ? 'h-48 bg-gray-100 rounded-[2rem]' : 'flex gap-4 p-5 border-b border-gray-100'}`}>
+          {!isJobFeed && (
             <>
               <div className="w-10 h-10 bg-gray-100 rounded-xl" />
               <div className="flex-1 space-y-3">
@@ -234,12 +257,14 @@ const App: React.FC = () => {
     </div>
   );
 
-  const isJobFeed = feed === 'job';
-
-  const TranslationIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>
-    </svg>
+  const MoreLoader = () => (
+    <div className="flex items-center justify-center py-6 gap-3">
+      <div className="relative w-4 h-4">
+        <div className="absolute inset-0 border-2 border-orange-100 rounded-full" />
+        <div className="absolute inset-0 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+      <span className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-400">Loading More</span>
+    </div>
   );
 
   return (
@@ -252,12 +277,12 @@ const App: React.FC = () => {
               <h1 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Hacker News</h1>
             </div>
           </div>
-          {/* Desktop Navigation - Reduced to approx 1.1x scale */}
+          {/* Desktop Navigation */}
           <div className="hidden lg:flex flex-1 items-center justify-center gap-1.5">
             {FEED_CONFIG.map((f) => (
               <button
                 key={f.id}
-                onClick={() => { clearUserSearch(); setFeed(f.id); }}
+                onClick={() => handleNavClick(f.id)}
                 className={`px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
                   feed === f.id && !searchUser ? 'bg-orange-50 text-orange-600' : 'text-gray-400 hover:bg-gray-50'
                 }`}
@@ -269,9 +294,6 @@ const App: React.FC = () => {
           </div>
           <div className="flex-1 flex items-center justify-end gap-4">
             <div className="flex items-center bg-gray-50 border border-gray-100 rounded-xl px-2.5 py-1 gap-2">
-              <span className="text-gray-400 flex items-center justify-center">
-                <TranslationIcon />
-              </span>
               <select 
                 value={targetLanguage}
                 onChange={(e) => setTargetLanguage(e.target.value)}
@@ -284,14 +306,14 @@ const App: React.FC = () => {
         </div>
       </header>
       <main className="flex-1 flex overflow-hidden max-w-[1600px] mx-auto w-full">
+        {/* Sidebar / List Section */}
         <section className={`relative flex-shrink-0 flex flex-col overflow-hidden transition-all duration-300 bg-white ${isJobFeed ? 'w-full' : 'w-full lg:w-[380px] border-r border-gray-100'} ${(selectedStory || activeUsername) && !isJobFeed ? 'hidden lg:flex' : 'flex'}`}>
           {searchUser && (
             <div className="bg-orange-50/50 border-b border-orange-100 px-5 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-[9px] font-black uppercase text-orange-400 bg-white px-1.5 py-0.5 rounded border border-orange-100">User Search</span>
                 <span className="text-[13px] font-bold text-orange-900 tracking-tight">{searchUser}</span>
               </div>
-              <button onClick={clearUserSearch} className="text-[10px] font-black text-orange-500 hover:text-orange-700 bg-white px-2 py-1 rounded-lg border border-orange-100 transition-all shadow-sm">CLOSE</button>
+              <button onClick={clearUserSearch} className="text-[10px] font-black text-orange-500 hover:text-orange-700 bg-white px-2 py-1 rounded-lg border border-orange-100">CLOSE</button>
             </div>
           )}
           <div ref={sidebarScrollRef} className="flex-1 overflow-y-auto scroll-smooth">
@@ -304,18 +326,12 @@ const App: React.FC = () => {
               <div className={isJobFeed ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6 pb-20" : "divide-y divide-gray-50"}>
                 {items.length === 0 ? (
                   <div className="col-span-full p-20 text-center">
-                    <div className="text-4xl mb-4 opacity-20">{feed === 'favorites' ? '🔖' : '📭'}</div>
-                    <p className="text-gray-400 text-sm font-medium">{feed === 'favorites' ? 'You haven\'t saved any stories yet' : 'No stories found'}</p>
+                    <p className="text-gray-400 text-sm font-medium">No items found</p>
                   </div>
                 ) : (
                   items.map((item, index) => (
                     isJobFeed ? (
-                      <JobCard
-                        key={`${item.id}-${index}`}
-                        job={item}
-                        targetLanguage={targetLanguage}
-                        onSelect={handleStorySelect}
-                      />
+                      <JobCard key={`${item.id}-${index}`} job={item} targetLanguage={targetLanguage} onSelect={handleStorySelect} />
                     ) : (
                       <StoryCard 
                         key={`${item.id}-${index}`} 
@@ -331,9 +347,9 @@ const App: React.FC = () => {
                     )
                   ))
                 )}
-                {(!searchUser && feed !== 'favorites' && hasMore) && (
-                  <div ref={loadMoreTrigger} className="col-span-full p-10 text-center">
-                    {loadingMore && <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto" />}
+                {hasMore && (
+                  <div ref={loadMoreTrigger} className="col-span-full">
+                    {loadingMore && <MoreLoader />}
                   </div>
                 )}
               </div>
@@ -346,17 +362,20 @@ const App: React.FC = () => {
           )}
         </section>
         
+        {/* Preview Pane Section (ONLY for standard feeds) */}
         {!isJobFeed && (
           <section className={`flex-1 relative bg-white overflow-hidden ${(!selectedStory && !activeUsername) ? 'hidden lg:flex items-center justify-center' : 'flex'}`}>
             {!selectedStory && !activeUsername && (
-              <div className="text-center p-10 max-sm">
-                <div className="w-20 h-20 bg-orange-50 rounded-3xl flex items-center justify-center text-3xl mx-auto mb-6">🗞️</div>
-                <h2 className="text-xl font-black text-gray-900 mb-2">Select a story</h2>
-                <p className="text-sm text-gray-400 font-medium">Read the latest from the Hacker News community with AI-powered summaries.</p>
+              <div className="text-center p-10 max-w-sm animate-in fade-in zoom-in duration-500">
+                <div className="w-20 h-20 bg-orange-50 rounded-[2.5rem] flex items-center justify-center text-3xl mx-auto mb-8 shadow-inner border border-orange-100/50">🗞️</div>
+                <h2 className="text-xl font-black text-gray-900 mb-2 tracking-tight">Select a story</h2>
+                <p className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] leading-relaxed">Select a topic you're interested in</p>
               </div>
             )}
-            <div className={`absolute inset-0 z-10 bg-white transition-opacity duration-200 ${selectedStory && !activeUsername ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-              {selectedStory && <StoryDetail story={selectedStory} onClose={() => setSelectedStory(null)} onUserSelect={handleUserSelect} targetLanguage={targetLanguage} isInline={true} isFavorite={favoriteIds.includes(selectedStory.id)} onToggleFavorite={toggleFavorite} />}
+            <div className={`absolute inset-0 z-10 bg-white transition-opacity duration-200 ${selectedStory && selectedStory.type !== 'job' && !activeUsername ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+              {selectedStory && selectedStory.type !== 'job' && (
+                <StoryDetail story={selectedStory} onClose={() => setSelectedStory(null)} onUserSelect={handleUserSelect} targetLanguage={targetLanguage} isInline={true} isFavorite={favoriteIds.includes(selectedStory.id)} onToggleFavorite={toggleFavorite} />
+              )}
             </div>
             <div className={`absolute inset-0 z-20 bg-white transition-transform duration-300 ease-out ${activeUsername ? 'translate-y-0' : 'translate-y-full pointer-events-none'}`}>
               {activeUsername && <UserDetail username={activeUsername} onClose={() => setActiveUsername(null)} onStorySelect={handleStorySelect} hasActiveStory={!!selectedStory} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} />}
@@ -364,42 +383,33 @@ const App: React.FC = () => {
           </section>
         )}
 
-        {isJobFeed && (selectedStory || activeUsername) && (
-          <div className="fixed inset-0 z-[100] bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 lg:p-10">
+        {/* Global Modal Layer (For Jobs or User details in specific contexts) */}
+        {((selectedStory && selectedStory.type === 'job') || (activeUsername && isJobFeed)) && (
+          <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 lg:p-10 transition-opacity duration-300">
              <div className="w-full h-full max-w-5xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden relative border border-gray-100 animate-in fade-in zoom-in duration-300">
-               {selectedStory && <StoryDetail story={selectedStory} onClose={() => setSelectedStory(null)} onUserSelect={handleUserSelect} targetLanguage={targetLanguage} isInline={false} isFavorite={favoriteIds.includes(selectedStory.id)} onToggleFavorite={toggleFavorite} />}
-               {activeUsername && <UserDetail username={activeUsername} onClose={() => setActiveUsername(null)} onStorySelect={handleStorySelect} hasActiveStory={!!selectedStory} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} />}
+               {selectedStory && selectedStory.type === 'job' && (
+                 <JobDetail job={selectedStory} onClose={() => setSelectedStory(null)} targetLanguage={targetLanguage} />
+               )}
+               {activeUsername && isJobFeed && (
+                 <UserDetail username={activeUsername} onClose={() => setActiveUsername(null)} onStorySelect={handleStorySelect} hasActiveStory={!!selectedStory} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} />
+               )}
              </div>
           </div>
         )}
       </main>
-
-      <button
-        onClick={() => { clearUserSearch(); setFeed('favorites'); setSelectedStory(null); setActiveUsername(null); }}
-        className={`lg:hidden fixed bottom-24 right-6 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all active:scale-90 z-40 animate-in fade-in slide-in-from-bottom ${
-          feed === 'favorites' ? 'bg-orange-600 text-white' : 'bg-white text-orange-500 border border-orange-100'
-        }`}
-      >
-        <span className="text-2xl">🔖</span>
-        {favoriteIds.length > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full border-2 border-white shadow-sm">
-            {favoriteIds.length}
-          </span>
-        )}
-      </button>
 
       <nav className="lg:hidden flex-shrink-0 bg-white border-t border-gray-100 px-2 py-4 pb-[calc(1rem+var(--sab))] z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
         <div className="grid grid-cols-6 w-full items-center gap-0.5">
           {FEED_CONFIG.filter(f => f.id !== 'favorites').map((f) => (
             <button
               key={f.id}
-              onClick={() => { clearUserSearch(); setFeed(f.id); setActiveUsername(null); }}
-              className={`flex flex-col items-center justify-center gap-1.5 py-2 rounded-xl transition-all active:scale-90 w-full ${
-                feed === f.id && !searchUser ? 'bg-orange-500 text-white shadow-lg shadow-orange-100' : 'text-gray-400 hover:bg-gray-50'
+              onClick={() => handleNavClick(f.id)}
+              className={`flex flex-col items-center justify-center gap-1.5 py-2 rounded-xl transition-all ${
+                feed === f.id && !searchUser ? 'bg-orange-500 text-white shadow-lg' : 'text-gray-400'
               }`}
             >
               <span className="text-lg leading-none">{f.icon}</span>
-              <span className={`text-[8.5px] font-black uppercase tracking-tight text-center ${feed === f.id && !searchUser ? 'text-white' : 'text-gray-400'}`}>{f.label}</span>
+              <span className={`text-[8.5px] font-black uppercase tracking-tight ${feed === f.id && !searchUser ? 'text-white' : 'text-gray-400'}`}>{f.label}</span>
             </button>
           ))}
         </div>
