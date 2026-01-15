@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { HNItem, FeedType } from './types';
 import { fetchFeedIds, fetchItemsByIds, searchItemsByUser, fetchItem, fetchJobsAlgolia } from './services/hnApi';
