@@ -193,10 +193,11 @@ const App: React.FC = () => {
   }, [selectedStory, items]);
 
   const handleStorySelect = async (story: HNItem) => {
-    if (story.type === 'job') {
-      if (story.url) window.open(story.url, '_blank', 'noopener,noreferrer');
+    if (story.type === 'job' && story.url && !story.text) {
+      window.open(story.url, '_blank', 'noopener,noreferrer');
       return;
     }
+    
     setActiveUsername(null);
     setSelectedStory(story);
     if (!story.kids && (story.descendants ?? 0) > 0) {
@@ -235,6 +236,12 @@ const App: React.FC = () => {
 
   const isJobFeed = feed === 'job';
 
+  const TranslationIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>
+    </svg>
+  );
+
   return (
     <div className="h-screen bg-[#fafafa] flex flex-col overflow-hidden">
       <header className="flex-shrink-0 z-50 w-full bg-white border-b border-gray-100">
@@ -245,24 +252,26 @@ const App: React.FC = () => {
               <h1 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Hacker News</h1>
             </div>
           </div>
-          {/* Desktop Navigation - Scaled up 1.2x */}
-          <div className="hidden lg:flex flex-1 items-center justify-center gap-2">
+          {/* Desktop Navigation - Reduced to approx 1.1x scale */}
+          <div className="hidden lg:flex flex-1 items-center justify-center gap-1.5">
             {FEED_CONFIG.map((f) => (
               <button
                 key={f.id}
                 onClick={() => { clearUserSearch(); setFeed(f.id); }}
-                className={`px-4 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all flex items-center gap-2.5 ${
+                className={`px-3.5 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
                   feed === f.id && !searchUser ? 'bg-orange-50 text-orange-600' : 'text-gray-400 hover:bg-gray-50'
                 }`}
               >
-                <span className="text-[17px] leading-none opacity-80">{f.icon}</span>
+                <span className="text-[15px] leading-none opacity-80">{f.icon}</span>
                 <span>{f.label}</span>
               </button>
             ))}
           </div>
           <div className="flex-1 flex items-center justify-end gap-4">
-            <div className="flex items-center bg-gray-50 border border-gray-100 rounded-xl px-2.5 py-1">
-              <span className="text-[9px] font-black text-gray-400 mr-1.5">TL</span>
+            <div className="flex items-center bg-gray-50 border border-gray-100 rounded-xl px-2.5 py-1 gap-2">
+              <span className="text-gray-400 flex items-center justify-center">
+                <TranslationIcon />
+              </span>
               <select 
                 value={targetLanguage}
                 onChange={(e) => setTargetLanguage(e.target.value)}
@@ -354,9 +363,17 @@ const App: React.FC = () => {
             </div>
           </section>
         )}
+
+        {isJobFeed && (selectedStory || activeUsername) && (
+          <div className="fixed inset-0 z-[100] bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 lg:p-10">
+             <div className="w-full h-full max-w-5xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden relative border border-gray-100 animate-in fade-in zoom-in duration-300">
+               {selectedStory && <StoryDetail story={selectedStory} onClose={() => setSelectedStory(null)} onUserSelect={handleUserSelect} targetLanguage={targetLanguage} isInline={false} isFavorite={favoriteIds.includes(selectedStory.id)} onToggleFavorite={toggleFavorite} />}
+               {activeUsername && <UserDetail username={activeUsername} onClose={() => setActiveUsername(null)} onStorySelect={handleStorySelect} hasActiveStory={!!selectedStory} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} />}
+             </div>
+          </div>
+        )}
       </main>
 
-      {/* Mobile FAB for Favorites */}
       <button
         onClick={() => { clearUserSearch(); setFeed('favorites'); setSelectedStory(null); setActiveUsername(null); }}
         className={`lg:hidden fixed bottom-24 right-6 w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all active:scale-90 z-40 animate-in fade-in slide-in-from-bottom ${
