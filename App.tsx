@@ -238,23 +238,24 @@ const App: React.FC = () => {
   return (
     <div className="h-screen bg-[#fafafa] flex flex-col overflow-hidden">
       <header className="flex-shrink-0 z-50 w-full bg-white border-b border-gray-100">
-        <div className="max-w-[1600px] mx-auto px-5 h-14 flex items-center justify-between">
+        <div className="max-w-[1600px] mx-auto px-5 h-16 flex items-center justify-between">
           <div className="flex-1 flex items-center justify-start">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-orange-500 rounded-xl flex items-center justify-center font-black text-white text-base shadow-sm">H</div>
               <h1 className="text-sm sm:text-base font-bold text-gray-900 tracking-tight">Hacker News</h1>
             </div>
           </div>
-          <div className="hidden lg:flex flex-1 items-center justify-center gap-1">
+          {/* Desktop Navigation - Scaled up 1.2x */}
+          <div className="hidden lg:flex flex-1 items-center justify-center gap-2">
             {FEED_CONFIG.map((f) => (
               <button
                 key={f.id}
                 onClick={() => { clearUserSearch(); setFeed(f.id); }}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+                className={`px-4 py-2 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all flex items-center gap-2.5 ${
                   feed === f.id && !searchUser ? 'bg-orange-50 text-orange-600' : 'text-gray-400 hover:bg-gray-50'
                 }`}
               >
-                <span className="text-sm leading-none opacity-80">{f.icon}</span>
+                <span className="text-[17px] leading-none opacity-80">{f.icon}</span>
                 <span>{f.label}</span>
               </button>
             ))}
@@ -370,18 +371,18 @@ const App: React.FC = () => {
         )}
       </button>
 
-      <nav className="lg:hidden flex-shrink-0 bg-white border-t border-gray-100 px-4 py-4 pb-[calc(1rem+var(--sab))] z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] overflow-x-auto scrollbar-hide">
-        <div className="flex justify-around items-center min-w-max gap-4 px-4 mx-auto">
+      <nav className="lg:hidden flex-shrink-0 bg-white border-t border-gray-100 px-2 py-4 pb-[calc(1rem+var(--sab))] z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+        <div className="grid grid-cols-6 w-full items-center gap-0.5">
           {FEED_CONFIG.filter(f => f.id !== 'favorites').map((f) => (
             <button
               key={f.id}
               onClick={() => { clearUserSearch(); setFeed(f.id); setActiveUsername(null); }}
-              className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-2xl transition-all active:scale-90 ${
+              className={`flex flex-col items-center justify-center gap-1.5 py-2 rounded-xl transition-all active:scale-90 w-full ${
                 feed === f.id && !searchUser ? 'bg-orange-500 text-white shadow-lg shadow-orange-100' : 'text-gray-400 hover:bg-gray-50'
               }`}
             >
-              <span className="text-xl leading-none">{f.icon}</span>
-              <span className={`text-[9px] font-black uppercase tracking-wider ${feed === f.id && !searchUser ? 'text-white' : 'text-gray-400'}`}>{f.label}</span>
+              <span className="text-lg leading-none">{f.icon}</span>
+              <span className={`text-[8.5px] font-black uppercase tracking-tight text-center ${feed === f.id && !searchUser ? 'text-white' : 'text-gray-400'}`}>{f.label}</span>
             </button>
           ))}
         </div>
