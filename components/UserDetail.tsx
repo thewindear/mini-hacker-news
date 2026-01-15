@@ -244,7 +244,7 @@ const UserDetail: React.FC<UserDetailProps> = ({ username, onClose, onStorySelec
               <h1 className="text-xl sm:text-2xl font-black text-gray-900 mb-1 tracking-tight normal-case truncate">{username}</h1>
               <div className="flex items-center gap-2 mb-1 overflow-x-auto scrollbar-hide whitespace-nowrap">
                 <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 px-2.5 py-0.5 rounded-full border border-orange-100 shadow-sm flex-shrink-0">Karma: {user?.karma || 0}</span>
-                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 bg-gray-50 px-2.5 py-0.5 rounded-full border border-gray-100 flex-shrink-0">Since {user ? formatDate(user.created) : '...'}</span>
+                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400 bg-gray-50 px-2.5 py-0.5 rounded-full border border-gray-100 flex-shrink-0">CREATED BY {user ? formatDate(user.created) : '...'}</span>
               </div>
             </div>
           </section>
